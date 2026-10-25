@@ -67,6 +67,10 @@
         </div>
       </div>
       <div class="flex items-center gap-2 text-xs">
+        <button type="button" id="toggleHistoryBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dark-800 hover:bg-dark-750 text-gray-200 border border-white/10 hover:border-brand-500/40 text-xs font-medium transition cursor-pointer">
+          <i class="ti ti-history text-sm text-brand-400"></i>
+          <span>Riwayat (<span id="historyCountBadge">0</span>)</span>
+        </button>
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
           Max 20 Files Bulk Mode
@@ -103,8 +107,39 @@
           <i class="ti ti-file-zip text-emerald-400"></i> Auto-Pairing ZIP
         </span>
         <span class="px-2.5 py-1 rounded-lg bg-dark-800 border border-white/5 flex items-center gap-1">
-          <i class="ti ti-shield-check text-amber-400"></i> Auto-Purge 30 Menit
+          <i class="ti ti-shield-check text-amber-400"></i> Auto-Purge 1 Jam (Persisten)
         </span>
+      </div>
+    </div>
+
+    <!-- History Section (Active Batches within 1 Hour) -->
+    <div id="historySection" class="hidden mb-6 glow-card rounded-2xl p-5 border border-white/10 bg-dark-850/90 shadow-xl transition-all">
+      <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-500/15 border border-brand-500/30 flex items-center justify-center">
+            <i class="ti ti-history text-brand-400 text-base"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              Riwayat Batch Aktif
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Tersimpan 1 Jam</span>
+            </h3>
+            <p class="text-[11px] text-gray-400">Hasil batch tetap tersimpan di server selama 1 jam sejak selesai generate (tidak hilang saat refresh).</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="refreshHistoryBtn" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition text-xs flex items-center gap-1" title="Segarkan Riwayat">
+            <i class="ti ti-refresh"></i> Refresh
+          </button>
+          <button type="button" id="closeHistoryBtn" class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition text-xs" title="Tutup Panel">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- History List Container -->
+      <div id="historyListContainer" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+        <!-- Populated via JS -->
       </div>
     </div>
 
@@ -306,6 +341,19 @@
 
       <!-- Results Box -->
       <div id="resultBox" class="hidden mt-8 pt-6 border-t border-white/10">
+
+        <!-- Batch Status & Expiry Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 mb-5 rounded-xl bg-dark-850/80 border border-white/10 text-xs">
+          <div class="flex items-center gap-2 text-gray-300">
+            <i class="ti ti-history text-brand-400 text-sm"></i>
+            <span>Menampilkan Batch: <strong id="currentBatchIdText" class="font-mono text-white text-xs"></strong></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="batchExpiryBadge" class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono text-[11px] flex items-center gap-1.5">
+              <i class="ti ti-clock text-xs"></i> <span id="batchExpiryCountdown">Tersimpan 1 Jam</span>
+            </span>
+          </div>
+        </div>
         
         <!-- Big ZIP Download Button -->
         <div class="rounded-xl bg-gradient-to-r from-emerald-500/10 via-brand-500/10 to-indigo-500/10 border border-emerald-500/30 p-6 mb-6 text-center">
@@ -373,7 +421,7 @@
         </div>
 
         <p class="text-[11px] text-gray-500 text-center mt-4">
-          <i class="ti ti-shield-check text-emerald-400 mr-0.5"></i> Proteksi Storage: Selama proses generate berlangsung, batch diproteksi 100% dari auto-purge. Timer 30 menit baru mulai dihitung mundur setelah proses selesai atau dari klik unduh terakhir.
+          <i class="ti ti-shield-check text-emerald-400 mr-0.5"></i> Proteksi Storage: Batch tersimpan selama 1 jam (60 menit) setelah selesai generate dan tetap aman meski halaman di-refresh. Setelah 1 jam, file akan dibersihkan otomatis.
         </p>
       </div>
 
@@ -410,6 +458,14 @@
     const countProcessed = document.getElementById('countProcessed');
     const filesTableBody = document.getElementById('filesTableBody');
     const deleteBatchBtn = document.getElementById('deleteBatchBtn');
+    const historySection = document.getElementById('historySection');
+    const toggleHistoryBtn = document.getElementById('toggleHistoryBtn');
+    const historyCountBadge = document.getElementById('historyCountBadge');
+    const historyListContainer = document.getElementById('historyListContainer');
+    const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
+    const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+    const currentBatchIdText = document.getElementById('currentBatchIdText');
+    const batchExpiryCountdown = document.getElementById('batchExpiryCountdown');
 
     const MAX_SINGLE_FILE_BYTES = 50 * 1024 * 1024; // 50 MB per single file
     const MAX_TOTAL_BATCH_BYTES = 500 * 1024 * 1024; // 500 MB total per batch
@@ -853,12 +909,164 @@
       }
     });
 
+    function formatTimeAgo(timestamp) {
+      if (!timestamp) return 'Baru saja';
+      const seconds = Math.floor(Date.now() / 1000 - timestamp);
+      if (seconds < 60) return 'Baru saja';
+      const mins = Math.floor(seconds / 60);
+      if (mins < 60) return `${mins} menit lalu`;
+      const hours = Math.floor(mins / 60);
+      return `${hours} jam lalu`;
+    }
+
+    function toggleHistoryPanel(forceOpen = null) {
+      if (!historySection) return;
+      if (forceOpen === true) {
+        historySection.classList.remove('hidden');
+      } else if (forceOpen === false) {
+        historySection.classList.add('hidden');
+      } else {
+        historySection.classList.toggle('hidden');
+      }
+      if (!historySection.classList.contains('hidden')) {
+        loadHistory();
+      }
+    }
+
+    if (toggleHistoryBtn) {
+      toggleHistoryBtn.addEventListener('click', () => toggleHistoryPanel());
+    }
+    if (closeHistoryBtn) {
+      closeHistoryBtn.addEventListener('click', () => toggleHistoryPanel(false));
+    }
+    if (refreshHistoryBtn) {
+      refreshHistoryBtn.addEventListener('click', () => loadHistory(true));
+    }
+
+    async function loadHistory(showNotice = false) {
+      if (!historyListContainer) return;
+      try {
+        const resp = await fetch('/api/history');
+        if (!resp.ok) return;
+        const res = await resp.json();
+        if (!res.success) return;
+
+        const batches = res.batches || [];
+        if (historyCountBadge) {
+          historyCountBadge.textContent = batches.length;
+          if (batches.length > 0) {
+            historyCountBadge.classList.remove('hidden');
+          } else {
+            historyCountBadge.classList.add('hidden');
+          }
+        }
+
+        if (batches.length === 0) {
+          historyListContainer.innerHTML = `
+            <div class="p-6 text-center text-xs text-gray-500 border border-white/5 rounded-xl bg-dark-900/50">
+              <i class="ti ti-inbox text-2xl mb-1 text-gray-600 block"></i>
+              Belum ada riwayat batch aktif dalam 1 jam terakhir.
+            </div>
+          `;
+          return;
+        }
+
+        historyListContainer.innerHTML = batches.map(b => {
+          const isCurrent = (currentBatchId === b.batch_id);
+          return `
+            <div class="p-3 rounded-xl bg-dark-900 border ${isCurrent ? 'border-brand-500/60 ring-1 ring-brand-500/30 bg-brand-500/5' : 'border-white/5 hover:border-white/20'} flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-dark-800 flex items-center justify-center text-gray-400 border border-white/5 shrink-0">
+                  <i class="ti ti-file-zip text-xl text-brand-400"></i>
+                </div>
+                <div class="text-left">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-xs text-white font-mono">Batch #${b.batch_id.slice(0, 8)}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">
+                      <i class="ti ti-clock"></i> Sisa ~${b.remaining_mins} menit
+                    </span>
+                    ${isCurrent ? '<span class="text-[10px] px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 font-semibold border border-brand-500/30">Aktif</span>' : ''}
+                  </div>
+                  <div class="text-[11px] text-gray-400 mt-0.5 flex items-center gap-2">
+                    <span>${b.total_processed} File</span> • 
+                    <span>ZIP: ${b.zip_size}</span> • 
+                    <span>${formatTimeAgo(b.created_at)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="selectBatch('${b.batch_id}')" class="px-2.5 py-1.5 rounded-lg bg-brand-500/15 hover:bg-brand-500/25 text-brand-300 hover:text-white border border-brand-500/30 text-xs font-medium flex items-center gap-1 transition">
+                  <i class="ti ti-eye"></i> Tampilkan
+                </button>
+                <a href="${b.zip_download_url}" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-medium flex items-center gap-1 transition" title="Download Paket ZIP">
+                  <i class="ti ti-download"></i> ZIP
+                </a>
+                <button type="button" onclick="deleteHistoryBatch('${b.batch_id}', event)" class="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 text-xs transition" title="Hapus Batch Ini">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('History load error:', err);
+      }
+    }
+
+    window.selectBatch = async function(batchId) {
+      try {
+        const resp = await fetch(`/api/batch-info/${batchId}`);
+        const data = await resp.json();
+        if (data && data.success) {
+          renderResultData(data);
+          try {
+            localStorage.setItem('nyobaai_last_result', JSON.stringify(data));
+          } catch (_) {}
+          resultBox.scrollIntoView({ behavior: 'smooth' });
+          loadHistory();
+        } else {
+          alert('Batch tidak ditemukan atau sudah kedaluwarsa.');
+          loadHistory();
+        }
+      } catch (e) {
+        alert('Gagal memuat batch: ' + e.message);
+      }
+    };
+
+    window.deleteHistoryBatch = async function(batchId, event) {
+      if (event) event.stopPropagation();
+      if (!confirm(`Hapus batch #${batchId.slice(0, 8)} dari server?`)) return;
+      try {
+        const resp = await fetch(`/api/delete-batch/${batchId}`, { method: 'POST' });
+        const res = await resp.json();
+        if (currentBatchId === batchId) {
+          resultBox.classList.add('hidden');
+          try {
+            localStorage.removeItem('nyobaai_last_result');
+          } catch (_) {}
+          currentBatchId = null;
+        }
+        loadHistory();
+      } catch (e) {
+        alert('Gagal menghapus batch: ' + e.message);
+      }
+    };
+
     function renderResultData(data) {
       if (!data || !data.success) return;
       currentBatchId = data.batch_id;
       countProcessed.textContent = data.total_processed;
       downloadZipBtn.href = data.zip_download_url;
       zipSizeBadge.textContent = data.zip_size;
+
+      if (currentBatchIdText) {
+        currentBatchIdText.textContent = '#' + data.batch_id.slice(0, 8);
+      }
+      if (batchExpiryCountdown) {
+        const remaining = data.remaining_mins || 60;
+        batchExpiryCountdown.textContent = `Tersimpan (Sisa ~${remaining} menit)`;
+      }
 
       const metaBox = document.getElementById('metadataDownloadBox');
       if (data.has_metadata) {
@@ -919,6 +1127,7 @@
       }).join('');
 
       resultBox.classList.remove('hidden');
+      loadHistory();
     }
 
     deleteBatchBtn.addEventListener('click', async () => {
@@ -933,47 +1142,56 @@
           localStorage.removeItem('nyobaai_last_result');
         } catch (_) {}
         currentBatchId = null;
+        loadHistory();
       } catch (e) {
         alert('Gagal menghapus batch: ' + e.message);
       }
     });
 
-    // Cek parameter ?batch= di URL atau pulihkan otomatis dari localStorage
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlBatchId = urlParams.get('batch');
-    if (urlBatchId) {
-      fetch(`/api/batch-info/${urlBatchId}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.success) {
-            renderResultData(data);
-            try {
-              localStorage.setItem('nyobaai_last_result', JSON.stringify(data));
-            } catch (_) {}
-          }
-        })
-        .catch(() => {});
-    } else {
+    // Inisialisasi: Muat riwayat dan pulihkan batch aktif saat user refresh
+    async function initRestore() {
+      await loadHistory();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlBatchId = urlParams.get('batch');
+      if (urlBatchId) {
+        selectBatch(urlBatchId);
+        return;
+      }
+
+      let restored = false;
       try {
         const saved = localStorage.getItem('nyobaai_last_result');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed && parsed.batch_id) {
-            // Verifikasi ke server apakah batch masih ada atau sudah kedaluwarsa (auto-purge)
-            fetch(`/api/batch-info/${parsed.batch_id}`)
-              .then(r => r.json())
-              .then(data => {
-                if (data && data.success) {
-                  renderResultData(data);
-                } else {
-                  localStorage.removeItem('nyobaai_last_result');
-                }
-              })
-              .catch(() => {});
+            const resp = await fetch(`/api/batch-info/${parsed.batch_id}`);
+            const data = await resp.json();
+            if (data && data.success) {
+              renderResultData(data);
+              restored = true;
+            } else {
+              localStorage.removeItem('nyobaai_last_result');
+            }
           }
         }
       } catch (_) {}
+
+      // Jika tidak ada di localStorage tapi ada riwayat aktif dalam 1 jam terakhir, pulihkan otomatis
+      if (!restored) {
+        try {
+          const hResp = await fetch('/api/history');
+          const hData = await hResp.json();
+          if (hData && hData.batches && hData.batches.length > 0) {
+            selectBatch(hData.batches[0].batch_id);
+          }
+        } catch (_) {}
+      }
     }
+
+    initRestore();
+    // Segarkan hitungan countdown riwayat tiap 60 detik
+    setInterval(loadHistory, 60000);
   </script>
 </body>
 </html>

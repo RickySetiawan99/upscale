@@ -79,6 +79,9 @@ def mark_batch_done(batch_id: str):
     touch_batch(batch_id)
 
 
+BATCH_EXPIRY_SECONDS = 3600  # 1 jam penuh sejak generate selesai
+
+
 def touch_batch(batch_id: str):
     """Memperbarui timestamp mtime folder batch agar countdown pembersihan di-reset dari aktivitas terakhir."""
     try:
@@ -90,7 +93,7 @@ def touch_batch(batch_id: str):
         pass
 
 
-# Background Auto-Cleanup Thread: Menghapus folder/file batch yang sudah IDLE lebih dari 30 menit setelah selesai
+# Background Auto-Cleanup Thread: Menghapus folder/file batch yang sudah IDLE lebih dari 1 jam (3600 detik) setelah selesai
 def cleanup_old_files():
     while True:
         try:
@@ -101,8 +104,8 @@ def cleanup_old_files():
                     if item.name in ACTIVE_BATCHES:
                         continue
 
-                # 2. Hapus hanya jika batch sudah IDLE (tidak aktif & selesai) lebih dari 30 menit (1800 detik)
-                if now - item.stat().st_mtime > 1800:
+                # 2. Hapus hanya jika batch sudah IDLE (tidak aktif & selesai) lebih dari 1 jam (3600 detik)
+                if now - item.stat().st_mtime > BATCH_EXPIRY_SECONDS:
                     try:
                         if item.is_dir():
                             shutil.rmtree(item)
@@ -313,10 +316,13 @@ def upscale_endpoint():
                     zipf.write(str(out_file), arcname=out_file.name)
 
         zip_size_mb = os.path.getsize(str(zip_path)) / (1024 * 1024)
+        now_ts = time.time()
 
-        return jsonify({
+        result_payload = {
             "success": True,
             "batch_id": batch_id,
+            "created_at": now_ts,
+            "expires_at": now_ts + BATCH_EXPIRY_SECONDS,
             "total_processed": len(processed_list),
             "zip_filename": zip_filename,
             "zip_download_url": f"/download-zip/{batch_id}",
@@ -327,9 +333,18 @@ def upscale_endpoint():
             "vecteezy_csv_url": f"/download-csv/{batch_id}/vecteezy" if has_metadata else None,
             "files": processed_list,
             "metadata_summary": metadata_records if has_metadata else []
-        })
+        }
+
+        # Simpan metadata batch agar persisten selama 1 jam saat user refresh / akses riwayat
+        try:
+            with open(batch_dir / "meta.json", "w", encoding="utf-8") as f:
+                json.dump(result_payload, f, ensure_ascii=False, indent=2)
+        except Exception as json_err:
+            print(f"[META JSON SAVE ERROR] {json_err}")
+
+        return jsonify(result_payload)
     finally:
-        # Selesai processing: lepas status aktif dan timer 30 menit baru mulai dihitung mundur
+        # Selesai processing: lepas status aktif dan timer 1 jam baru mulai dihitung mundur
         mark_batch_done(batch_id)
 
 
@@ -450,12 +465,87 @@ def delete_batch(batch_id):
     return jsonify({"success": True, "message": "Batch sudah tidak ada"})
 
 
+@app.route("/api/history")
+def get_batch_history():
+    now = time.time()
+    history = []
+    for item in STORAGE_DIR.glob("*"):
+        if not item.is_dir():
+            continue
+
+        mtime = item.stat().st_mtime
+        elapsed = now - mtime
+        if elapsed > BATCH_EXPIRY_SECONDS:
+            continue
+
+        meta_file = item / "meta.json"
+        remaining_seconds = max(0, int(BATCH_EXPIRY_SECONDS - elapsed))
+        remaining_mins = max(1, int(remaining_seconds // 60))
+
+        if meta_file.exists():
+            try:
+                with open(meta_file, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                    created_at = meta.get("created_at", mtime)
+                    c_elapsed = now - created_at
+                    if c_elapsed <= BATCH_EXPIRY_SECONDS:
+                        meta["remaining_seconds"] = max(0, int(BATCH_EXPIRY_SECONDS - c_elapsed))
+                        meta["remaining_mins"] = max(1, int(meta["remaining_seconds"] // 60))
+                        history.append(meta)
+                        continue
+            except Exception:
+                pass
+
+        # Fallback jika folder belum punya meta.json
+        zip_files = list(item.glob("*.zip"))
+        images = list(item.glob("*.jpg")) + list(item.glob("*.png")) + list(item.glob("*.jpeg"))
+        if zip_files or images:
+            zip_size = f"{zip_files[0].stat().st_size / (1024*1024):.2f} MB" if zip_files else "0 MB"
+            history.append({
+                "batch_id": item.name,
+                "created_at": mtime,
+                "total_processed": len(images),
+                "zip_download_url": f"/download-zip/{item.name}" if zip_files else None,
+                "zip_size": zip_size,
+                "has_metadata": (item / "adobe_stock_metadata.csv").exists(),
+                "has_vectors": len(list(item.glob("*.eps"))) > 0,
+                "remaining_seconds": remaining_seconds,
+                "remaining_mins": remaining_mins,
+            })
+
+    history.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+    return jsonify({"success": True, "batches": history, "total": len(history)})
+
+
 @app.route("/api/batch-info/<batch_id>")
 def get_batch_info(batch_id):
     safe_batch = Path(batch_id).name
     batch_dir = STORAGE_DIR / safe_batch
     if not batch_dir.exists() or not batch_dir.is_dir():
-        return jsonify({"success": False, "error": "Batch tidak ditemukan atau telah kedaluwarsa."}), 404
+        return jsonify({"success": False, "error": "Batch tidak ditemukan atau telah kedaluwarsa (lebih dari 1 jam)."}), 404
+
+    now = time.time()
+    mtime = batch_dir.stat().st_mtime
+    elapsed = now - mtime
+    if elapsed > BATCH_EXPIRY_SECONDS:
+        return jsonify({"success": False, "error": "Batch telah kedaluwarsa (melebihi batas 1 jam)."}), 404
+
+    remaining_seconds = max(0, int(BATCH_EXPIRY_SECONDS - elapsed))
+    remaining_mins = max(1, int(remaining_seconds // 60))
+
+    meta_file = batch_dir / "meta.json"
+    if meta_file.exists():
+        try:
+            with open(meta_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                created_at = data.get("created_at", mtime)
+                c_elapsed = now - created_at
+                data["remaining_seconds"] = max(0, int(BATCH_EXPIRY_SECONDS - c_elapsed))
+                data["remaining_mins"] = max(1, int(data["remaining_seconds"] // 60))
+                data["success"] = True
+                return jsonify(data)
+        except Exception:
+            pass
 
     touch_batch(batch_id)
 
@@ -495,7 +585,9 @@ def get_batch_info(batch_id):
         "has_metadata": has_adobe or has_vecteezy,
         "adobe_csv_url": f"/download-csv/{safe_batch}/adobe" if has_adobe else None,
         "vecteezy_csv_url": f"/download-csv/{safe_batch}/vecteezy" if has_vecteezy else None,
-        "files": files
+        "files": files,
+        "remaining_seconds": remaining_seconds,
+        "remaining_mins": remaining_mins
     })
 
 
