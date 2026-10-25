@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NyobaAI — Bulk Adobe Stock Image Upscaler (Max 20 Files)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            },
+            dark: {
+              900: '#0b0f19',
+              850: '#111827',
+              800: '#1f2937',
+              700: '#374151',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f3f4f6;
+    }
+    .glow-card {
+      background: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08), transparent 70%), #111827;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glow-card:hover {
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Navbar -->
+  <header class="border-b border-white/5 bg-dark-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i class="ti ti-sparkles text-white text-xl"></i>
+        </div>
+        <div>
+          <span class="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
+            NyobaAI <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-medium">Bulk Pro</span>
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          Max 20 Files Bulk Mode
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-4xl mx-auto px-4 py-8 w-full">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-3">
+        Bulk Upscaler & Vectorizer untuk <span class="bg-gradient-to-r from-brand-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">Adobe Stock & Vecteezy</span>
+      </h1>
+      <p class="text-sm md:text-base text-gray-400 max-w-2xl mx-auto">
+        Unggah hingga 20 foto sekaligus. Dapatkan gambar 300 DPI, file vektor EPS PostScript asli, serta metadata CSV siap submit sekali unduh!
+      </p>
+
+      <!-- Feature Badges -->
+      <div class="flex flex-wrap justify-center gap-2 mt-4 text-xs text-gray-300">
+        <span class="px-2.5 py-1 rounded-lg bg-dark-800 border border-white/5 flex items-center gap-1">
+          <i class="ti ti-vector text-indigo-400"></i> Auto EPS Vectorizer (Kurva Asli)
+        </span>
+        <span class="px-2.5 py-1 rounded-lg bg-dark-800 border border-white/5 flex items-center gap-1">
+          <i class="ti ti-cut text-emerald-400"></i> Studio Edge Anti-Aliasing
+        </span>
+        <span class="px-2.5 py-1 rounded-lg bg-dark-800 border border-white/5 flex items-center gap-1">
+          <i class="ti ti-file-spreadsheet text-red-400"></i> Metadata CSV (Adobe & Vecteezy)
+        </span>
+        <span class="px-2.5 py-1 rounded-lg bg-dark-800 border border-white/5 flex items-center gap-1">
+          <i class="ti ti-files text-brand-400"></i> Max 20 Files Bulk
+        </span>
+        <span class="px-2.5 py-1 rounded-lg bg-dark-800 border border-white/5 flex items-center gap-1">
+          <i class="ti ti-file-zip text-emerald-400"></i> Auto-Pairing ZIP
+        </span>
+        <span class="px-2.5 py-1 rounded-lg bg-dark-800 border border-white/5 flex items-center gap-1">
+          <i class="ti ti-shield-check text-amber-400"></i> Auto-Purge 30 Menit
+        </span>
+      </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="glow-card rounded-2xl p-6 md:p-8 shadow-2xl transition duration-300">
+      
+      <!-- Upload Zone -->
+      <div id="dropzone" class="relative border-2 border-dashed border-gray-700 hover:border-brand-500 rounded-2xl p-6 md:p-8 text-center transition-all bg-dark-850/50 hover:bg-brand-500/5 group">
+        <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp" class="hidden">
+        
+        <!-- Empty Prompt -->
+        <div id="emptyPrompt" class="flex flex-col items-center justify-center cursor-pointer py-4">
+          <div class="w-16 h-16 rounded-full bg-brand-500/10 border border-brand-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition duration-200">
+            <i class="ti ti-cloud-upload text-3xl text-brand-400"></i>
+          </div>
+          <p class="font-semibold text-white text-base mb-1">Tarik & Lepas hingga 20 gambar ke sini, atau klik untuk memilih</p>
+          <p class="text-xs text-gray-400">Mendukung JPG, PNG, WEBP • Maks 20 file • Maks 50 MB / file • Maks 500 MB total</p>
+        </div>
+
+        <!-- Preview Container with Visual Image Cards Grid -->
+        <div id="previewContainer" class="hidden flex flex-col items-center w-full">
+          <!-- Top bar with stats & actions -->
+          <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <span id="fileCountBadge" class="px-3 py-1 rounded-full bg-brand-500/20 text-brand-400 text-xs font-bold font-mono"></span>
+              <span id="totalSizeText" class="text-xs text-gray-400"></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" id="addMoreFilesBtn" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-gray-200 hover:text-white text-xs font-medium flex items-center gap-1.5 transition">
+                <i class="ti ti-plus"></i> Tambah Gambar
+              </button>
+              <button type="button" id="removeFileBtn" class="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 text-xs font-medium flex items-center gap-1.5 transition">
+                <i class="ti ti-trash"></i> Hapus Semua
+              </button>
+            </div>
+          </div>
+
+          <!-- Alert jika ukuran melebihi batas -->
+          <div id="sizeWarningBox" class="hidden w-full mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5 text-left">
+            <i class="ti ti-alert-triangle text-base text-rose-400 shrink-0 mt-0.5"></i>
+            <div class="flex-1 leading-relaxed" id="sizeWarningMsg"></div>
+          </div>
+          
+          <!-- Visual Image Cards Grid -->
+          <div id="selectedCardsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full max-h-[440px] overflow-y-auto p-1">
+            <!-- Populated via JS with image cards and individual cancel buttons -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Format Auto-Detection & Dynamic Toggle Panel -->
+      <div id="formatDetectionCard" class="hidden mt-6 p-4 rounded-xl bg-dark-850/80 border border-white/10 transition-all">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span id="detectedFormatBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5">
+              <!-- Populated by JS -->
+            </span>
+            <span id="detectedFormatTitle" class="text-xs text-gray-300 font-medium">
+              <!-- Populated by JS -->
+            </span>
+          </div>
+          <span class="text-[11px] text-gray-400 font-normal">Pilih format output di bawah:</span>
+        </div>
+
+        <!-- Dynamic Action Buttons -->
+        <div id="formatToggleContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Controls Panel -->
+      <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/5">
+        
+        <!-- Scale Multiplier -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+            <i class="ti ti-zoom-in text-brand-400 mr-1"></i> Skala (Scale)
+          </label>
+          <select id="scaleSelect" class="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition">
+            <option value="2.0" selected>2x Super-Resolution</option>
+            <option value="3.0">3x Super-Resolution</option>
+            <option value="4.0">4x Ultra HD</option>
+          </select>
+        </div>
+
+        <!-- Edge Smoothing / Anti-Aliasing -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">
+            <i class="ti ti-cut text-emerald-400 mr-1"></i> Kehalusan Pinggiran
+          </label>
+          <select id="edgeSmoothSelect" class="w-full bg-dark-800 border border-emerald-500/30 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+            <option value="none">Mati (Tajam Alami)</option>
+            <option value="low">Subtle (Halus Ringan)</option>
+            <option value="medium" selected>Studio Cutout (Rata & Anti-Gerigi)</option>
+            <option value="strong">Ultra Smooth (Bebas Potongan Kasar)</option>
+          </select>
+        </div>
+
+        <!-- Denoise Level -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+            <i class="ti ti-wand text-brand-400 mr-1"></i> Chroma Denoise
+          </label>
+          <select id="denoiseSelect" class="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition">
+            <option value="none">Tanpa Denoise</option>
+            <option value="low">Low (Noise Ringan)</option>
+            <option value="medium" selected>Medium (Standar Adobe)</option>
+            <option value="strong">Strong (Low-Light Noise)</option>
+          </select>
+        </div>
+
+        <!-- Sharpen Level -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+            <i class="ti ti-focus-2 text-indigo-400 mr-1"></i> Detail Sharpening
+          </label>
+          <select id="sharpenSelect" class="w-full bg-dark-800 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition">
+            <option value="none">Tanpa Penajaman</option>
+            <option value="low">Subtle (Halus)</option>
+            <option value="medium" selected>Adaptive Crisp (Anti-Halo)</option>
+            <option value="strong">Maximum Detail</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- Metadata Auto-Generation Option -->
+      <div class="mt-4 p-3.5 rounded-xl bg-dark-850/80 border border-white/5 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <input type="checkbox" id="generateMetadataCheckbox" checked class="w-4 h-4 rounded bg-dark-800 border-white/20 text-brand-600 focus:ring-brand-500 cursor-pointer">
+          <label for="generateMetadataCheckbox" class="text-xs text-gray-200 cursor-pointer select-none">
+            <span class="font-bold text-white flex items-center gap-1.5">
+              <i class="ti ti-tags text-brand-400"></i> Generate Metadata Otomatis (Adobe Stock & Vecteezy CSV)
+            </span>
+            <span class="text-gray-400 block text-[11px] mt-0.5">
+              Otomatis buat file CSV berisi Judul, 35+ Keyword komersial, & Kategori resmi siap bulk upload.
+              <a href="/download-template/adobe" class="text-red-400 hover:text-red-300 underline ml-1 inline-flex items-center gap-0.5" title="Download template resmi Adobe Stock">
+                <i class="ti ti-download text-xs"></i> Template Adobe (.csv)
+              </a>
+              <span class="text-gray-600">•</span>
+              <a href="/download-template/vecteezy" class="text-amber-400 hover:text-amber-300 underline inline-flex items-center gap-0.5" title="Download template resmi Vecteezy">
+                <i class="ti ti-download text-xs"></i> Template Vecteezy (.csv)
+              </a>
+            </span>
+          </label>
+        </div>
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium whitespace-nowrap hidden sm:inline-block">
+          Included in ZIP
+        </span>
+      </div>
+
+      <!-- Vector EPS Generator Option -->
+      <div class="mt-3 p-3.5 rounded-xl bg-dark-850/80 border border-white/5 transition-all">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="generateVectorCheckbox" class="w-4 h-4 rounded bg-dark-800 border-white/20 text-indigo-500 focus:ring-indigo-500 cursor-pointer">
+            <label for="generateVectorCheckbox" class="text-xs text-gray-200 cursor-pointer select-none">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <i class="ti ti-vector text-indigo-400"></i> Generate EPS Vector (Adobe Stock & Vecteezy Ready)
+              </span>
+              <span class="text-gray-400 block text-[11px] mt-0.5">
+                Konversi gambar ke kurva Bezier vektor asli (.EPS) yang otomatis dipasangkan dengan file JPG preview.
+              </span>
+            </label>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium whitespace-nowrap hidden sm:inline-block">
+            Auto-Paired in ZIP
+          </span>
+        </div>
+
+        <!-- Vector Preset Options (Collapsible when checkbox checked) -->
+        <div id="vectorPresetContainer" class="hidden mt-3 pt-3 border-t border-white/5">
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+            <i class="ti ti-palette text-indigo-400 mr-1"></i> Tipe / Gaya Tracing Vektor:
+          </label>
+          <select id="vectorPresetSelect" class="w-full bg-dark-800 border border-indigo-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+            <option value="logo_icon" selected>Logo & Flat Icon (Garis tegas, anchor point sedikit, file EPS ringan)</option>
+            <option value="sticker_silhouette">Sticker & Silhouette (Kontur tebal, siluet rata, anti-gerigi)</option>
+            <option value="illustration">Detailed Illustration (Detail bertingkat, shading kurva halus)</option>
+            <option value="complex">Complex Graphic / Scenery (Spektrum warna kaya multi-layer)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Submit Action -->
+      <div class="mt-6">
+        <button id="processBtn" disabled class="w-full py-3.5 px-6 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg transition-all bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-brand-500/25">
+          <i class="ti ti-player-play-filled"></i>
+          <span id="btnText">Pilih Gambar untuk Memulai</span>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loadingState" class="hidden mt-6 text-center py-6">
+        <div class="inline-block animate-spin rounded-full h-9 w-9 border-t-2 border-b-2 border-brand-400 mb-3"></div>
+        <p class="text-sm font-semibold text-white" id="loadingStatusText">Sedang memproses batch gambar secara sekuensial...</p>
+        <p class="text-xs text-gray-400 mt-1">Mengaplikasikan 300 DPI, sRGB 4:4:4, anti-halo sharpening, & metadata CSV</p>
+      </div>
+
+      <!-- Results Box -->
+      <div id="resultBox" class="hidden mt-8 pt-6 border-t border-white/10">
+        
+        <!-- Big ZIP Download Button -->
+        <div class="rounded-xl bg-gradient-to-r from-emerald-500/10 via-brand-500/10 to-indigo-500/10 border border-emerald-500/30 p-6 mb-6 text-center">
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <i class="ti ti-circle-check-filled text-emerald-400 text-2xl"></i>
+            <h3 class="text-lg font-bold text-white">Batch Berhasil Diproses! (<span id="countProcessed">0</span> File)</h3>
+          </div>
+          <p class="text-xs text-gray-300 mb-4">
+            Semua file sudah berstandar Adobe Stock & Vecteezy (300 DPI, sRGB, nama file asli terjaga) dan siap di-submit.
+          </p>
+
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a id="downloadZipBtn" href="#" class="inline-flex w-full sm:w-auto items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-xl shadow-emerald-500/25 transition transform hover:-translate-y-0.5">
+              <i class="ti ti-file-zip text-xl"></i>
+              <span>Download Paket Lengkap (.ZIP)</span>
+              <span id="zipSizeBadge" class="text-xs font-normal bg-emerald-700/60 px-2 py-0.5 rounded-full ml-1"></span>
+            </a>
+          </div>
+
+          <!-- Metadata CSV Standalone Download Row -->
+          <div id="metadataDownloadBox" class="hidden mt-4 pt-4 border-t border-emerald-500/20 flex flex-wrap items-center justify-center gap-2.5">
+            <span class="text-xs text-gray-300 flex items-center gap-1 font-semibold mr-1">
+              <i class="ti ti-file-spreadsheet text-emerald-400 text-sm"></i> Download CSV:
+            </span>
+            <a id="downloadAdobeCsvBtn" href="#" class="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 hover:text-white border border-red-500/30 text-xs font-semibold transition">
+              <i class="ti ti-brand-adobe text-sm"></i> Adobe Stock CSV
+            </a>
+            <a id="downloadVecteezyCsvBtn" href="#" class="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-500/30 text-xs font-semibold transition">
+              <i class="ti ti-vector-triangle text-sm"></i> Vecteezy CSV
+            </a>
+            <a href="/download-template/adobe" class="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg bg-dark-800/90 hover:bg-dark-700 text-gray-300 hover:text-white border border-white/10 text-xs font-medium transition" title="Download Contoh File Template CSV Asli dari Adobe Stock">
+              <i class="ti ti-file-download text-sm text-red-400"></i> Sample Adobe (.csv)
+            </a>
+            <a href="/download-template/vecteezy" class="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg bg-dark-800/90 hover:bg-dark-700 text-gray-300 hover:text-white border border-white/10 text-xs font-medium transition" title="Download Contoh File Template CSV Asli dari Vecteezy">
+              <i class="ti ti-file-download text-sm text-amber-400"></i> Sample Vecteezy (.csv)
+            </a>
+          </div>
+        </div>
+
+        <!-- Detail Table of Processed Files -->
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400">Daftar File yang Di-upscale:</h4>
+            <button id="deleteBatchBtn" type="button" class="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 transition">
+              <i class="ti ti-trash"></i> Hapus Batch dari Server
+            </button>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-white/5 bg-dark-900/60">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-dark-800/80 text-gray-400 border-b border-white/5">
+                <tr>
+                  <th class="py-2.5 px-3">Nama File Hasil</th>
+                  <th class="py-2.5 px-3">Format</th>
+                  <th class="py-2.5 px-3">Resolusi Akhir</th>
+                  <th class="py-2.5 px-3">Ukuran</th>
+                  <th class="py-2.5 px-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="filesTableBody" class="divide-y divide-white/5 text-gray-300">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-gray-500 text-center mt-4">
+          <i class="ti ti-shield-check text-emerald-400 mr-0.5"></i> Proteksi Storage: Selama proses generate berlangsung, batch diproteksi 100% dari auto-purge. Timer 30 menit baru mulai dihitung mundur setelah proses selesai atau dari klik unduh terakhir.
+        </p>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 py-4 text-center text-xs text-gray-500">
+    <p>NyobaAI Adobe Stock Bulk Engine • Max 20 Files per Batch • Auto ZIP Packaging</p>
+  </footer>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const emptyPrompt = document.getElementById('emptyPrompt');
+    const previewContainer = document.getElementById('previewContainer');
+    const fileCountBadge = document.getElementById('fileCountBadge');
+    const totalSizeText = document.getElementById('totalSizeText');
+    const selectedCardsGrid = document.getElementById('selectedCardsGrid');
+    const addMoreFilesBtn = document.getElementById('addMoreFilesBtn');
+    const removeFileBtn = document.getElementById('removeFileBtn');
+    const sizeWarningBox = document.getElementById('sizeWarningBox');
+    const sizeWarningMsg = document.getElementById('sizeWarningMsg');
+    const formatDetectionCard = document.getElementById('formatDetectionCard');
+    const detectedFormatBadge = document.getElementById('detectedFormatBadge');
+    const detectedFormatTitle = document.getElementById('detectedFormatTitle');
+    const formatToggleContainer = document.getElementById('formatToggleContainer');
+    const processBtn = document.getElementById('processBtn');
+    const btnText = document.getElementById('btnText');
+    const loadingState = document.getElementById('loadingState');
+    const resultBox = document.getElementById('resultBox');
+    const downloadZipBtn = document.getElementById('downloadZipBtn');
+    const zipSizeBadge = document.getElementById('zipSizeBadge');
+    const countProcessed = document.getElementById('countProcessed');
+    const filesTableBody = document.getElementById('filesTableBody');
+    const deleteBatchBtn = document.getElementById('deleteBatchBtn');
+
+    const MAX_SINGLE_FILE_BYTES = 50 * 1024 * 1024; // 50 MB per single file
+    const MAX_TOTAL_BATCH_BYTES = 500 * 1024 * 1024; // 500 MB total per batch
+
+    let selectedFiles = [];
+    let previewUrls = [];
+    let currentBatchId = null;
+    let selectedTargetFormat = 'auto'; // 'auto' | 'jpg' | 'png'
+    let currentFormatOptions = [];
+
+    function clearObjectUrls() {
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      previewUrls = [];
+    }
+
+    function addFiles(newFiles) {
+      if (!newFiles || newFiles.length === 0) return;
+
+      const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+      const validFiles = [];
+      let rejectedExtCount = 0;
+
+      for (const f of newFiles) {
+        const ext = (f.name.split('.').pop() || '').toLowerCase();
+        if (allowedExts.includes(ext)) {
+          // Cegah file kembar
+          const isDup = selectedFiles.some(existing => existing.name === f.name && existing.size === f.size) ||
+                        validFiles.some(existing => existing.name === f.name && existing.size === f.size);
+          if (!isDup) {
+            validFiles.push(f);
+          }
+        } else {
+          rejectedExtCount++;
+        }
+      }
+
+      if (rejectedExtCount > 0) {
+        alert(`${rejectedExtCount} file diabaikan karena bukan format JPG, PNG, atau WEBP.`);
+      }
+
+      const availableSlots = 20 - selectedFiles.length;
+      if (availableSlots <= 0) {
+        alert('Maksimal 20 file per batch sudah tercapai.');
+        return;
+      }
+
+      let filesToAdd = validFiles;
+      if (filesToAdd.length > availableSlots) {
+        alert(`Batas maksimal 20 file. Hanya ${availableSlots} file pertama yang ditambahkan.`);
+        filesToAdd = filesToAdd.slice(0, availableSlots);
+      }
+
+      selectedFiles = selectedFiles.concat(filesToAdd);
+      updateCardsUI();
+    }
+
+    window.cancelFile = function(index, e) {
+      if (e) e.stopPropagation();
+      if (index >= 0 && index < selectedFiles.length) {
+        selectedFiles.splice(index, 1);
+        updateCardsUI();
+      }
+    };
+
+    function updateCardsUI() {
+      clearObjectUrls();
+
+      if (selectedFiles.length === 0) {
+        previewContainer.classList.add('hidden');
+        emptyPrompt.classList.remove('hidden');
+        formatDetectionCard.classList.add('hidden');
+        sizeWarningBox.classList.add('hidden');
+        sizeWarningMsg.innerHTML = '';
+        processBtn.disabled = true;
+        btnText.textContent = 'Pilih Gambar untuk Memulai';
+        selectedCardsGrid.innerHTML = '';
+        fileInput.value = '';
+        selectedTargetFormat = 'auto';
+        return;
+      }
+
+      emptyPrompt.classList.add('hidden');
+      previewContainer.classList.remove('hidden');
+      resultBox.classList.add('hidden');
+
+      fileCountBadge.textContent = `${selectedFiles.length} / 20 File`;
+
+      const totalBytes = selectedFiles.reduce((acc, f) => acc + f.size, 0);
+      const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
+      const oversizedFiles = selectedFiles.filter(f => f.size > MAX_SINGLE_FILE_BYTES);
+      const isTotalExceeded = totalBytes > MAX_TOTAL_BATCH_BYTES;
+      const isSingleExceeded = oversizedFiles.length > 0;
+
+      selectedCardsGrid.innerHTML = selectedFiles.map((file, idx) => {
+        const url = URL.createObjectURL(file);
+        previewUrls.push(url);
+
+        const ext = (file.name.split('.').pop() || '').toUpperCase();
+        let badgeColor = 'bg-brand-500/80 text-white';
+        if (ext === 'PNG') badgeColor = 'bg-sky-500/80 text-white';
+        else if (ext === 'JPG' || ext === 'JPEG') badgeColor = 'bg-amber-500/80 text-white';
+        else if (ext === 'WEBP') badgeColor = 'bg-emerald-500/80 text-white';
+
+        const isTooLarge = file.size > MAX_SINGLE_FILE_BYTES;
+        const fileMB = (file.size / (1024 * 1024)).toFixed(1);
+        const sizeStr = file.size >= 1024 * 1024 ? `${fileMB} MB` : `${Math.round(file.size / 1024)} KB`;
+
+        return `
+          <div class="group relative flex flex-col rounded-xl overflow-hidden bg-dark-900 border ${isTooLarge ? 'border-rose-500/60 bg-rose-500/5' : 'border-white/10 hover:border-brand-500/50'} transition-all shadow-md">
+            <!-- Thumbnail preview -->
+            <div class="relative aspect-square w-full bg-dark-950/80 overflow-hidden flex items-center justify-center">
+              <img src="${url}" alt="${file.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy" />
+              
+              <!-- Format badge top-left -->
+              <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${badgeColor} shadow">
+                ${ext}
+              </span>
+
+              <!-- Cancel button top-right -->
+              <button type="button" onclick="cancelFile(${idx}, event)" title="Hapus gambar ini"
+                class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-dark-950/85 hover:bg-rose-500 text-gray-300 hover:text-white flex items-center justify-center transition shadow-md border border-white/10 hover:border-rose-400">
+                <i class="ti ti-x text-xs font-bold"></i>
+              </button>
+
+              ${isTooLarge ? `
+              <div class="absolute inset-x-0 bottom-0 bg-rose-600/95 text-white text-[10px] font-semibold py-0.5 px-1 text-center">
+                > 50 MB (Melebihi)
+              </div>` : ''}
+            </div>
+
+            <!-- File details -->
+            <div class="p-2 text-left flex flex-col justify-between flex-1 bg-dark-850/60">
+              <span class="text-xs text-gray-200 font-medium truncate mb-1" title="${file.name}">
+                ${file.name}
+              </span>
+              <div class="flex items-center justify-between text-[10px] font-mono">
+                <span class="${isTooLarge ? 'text-rose-400 font-bold' : 'text-gray-400'}">${sizeStr}</span>
+                ${isTooLarge ? '<span class="text-rose-400 font-semibold">Over Limit</span>' : '<span class="text-emerald-400 font-medium">Siap</span>'}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (isTotalExceeded) {
+        sizeWarningBox.classList.remove('hidden');
+        sizeWarningMsg.innerHTML = `<strong>Total Ukuran Melebihi Batas (500 MB)!</strong><br>Total ukuran file yang Anda pilih adalah <strong>${totalMB} MB</strong>. Server hanya menerima maksimal 500 MB per batch. Silakan hapus sebagian gambar menggunakan tombol <strong>✕</strong> pada card.`;
+        totalSizeText.innerHTML = `<span class="text-rose-400 font-semibold">Total: ${totalMB} MB</span> • <span class="text-rose-400">Melebihi batas server (500 MB)</span>`;
+        processBtn.disabled = true;
+        btnText.textContent = `Total Ukuran Melebihi Batas (Maks 500 MB)`;
+        formatDetectionCard.classList.add('hidden');
+      } else if (isSingleExceeded) {
+        sizeWarningBox.classList.remove('hidden');
+        sizeWarningMsg.innerHTML = `<strong>Terdapat ${oversizedFiles.length} file melebihi batas 50 MB per gambar:</strong><br>` +
+          oversizedFiles.map(f => `• <span class="font-mono text-rose-200">${f.name}</span> (${(f.size / (1024 * 1024)).toFixed(1)} MB)`).join('<br>') +
+          `<br><span class="text-rose-300/80 mt-1 inline-block">Maksimal ukuran tiap file adalah 50 MB. Klik tombol <strong>✕</strong> pada kartu gambar untuk membatalkan file tersebut.</span>`;
+        totalSizeText.innerHTML = `<span class="text-rose-400 font-semibold">Total: ${totalMB} MB</span> • <span class="text-rose-400">${oversizedFiles.length} file melebihi batas 50 MB</span>`;
+        processBtn.disabled = true;
+        btnText.textContent = `Ada File Melebihi 50 MB (Tidak Dapat Diproses)`;
+        formatDetectionCard.classList.add('hidden');
+      } else {
+        sizeWarningBox.classList.add('hidden');
+        sizeWarningMsg.innerHTML = '';
+        totalSizeText.innerHTML = `<span class="text-emerald-400 font-medium">Total: ${totalMB} MB</span> • <span class="text-emerald-400/80">Ukuran aman (Maks 500 MB)</span>`;
+        processBtn.disabled = false;
+        btnText.textContent = `Mulai Proses ${selectedFiles.length} File Sekaligus`;
+        detectAndRenderFormatOptions(selectedFiles);
+      }
+    }
+
+    // Drag & Drop listener pada dropzone
+    if (dropzone) {
+      ['dragenter', 'dragover'].forEach(evtName => {
+        dropzone.addEventListener(evtName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('border-brand-500', 'bg-brand-500/10');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(evtName => {
+        dropzone.addEventListener(evtName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('border-brand-500', 'bg-brand-500/10');
+        });
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          addFiles(Array.from(e.dataTransfer.files));
+        }
+      });
+    }
+
+    // Trigger input file saat klik emptyPrompt atau addMoreFilesBtn
+    if (emptyPrompt) {
+      emptyPrompt.addEventListener('click', () => {
+        fileInput.click();
+      });
+    }
+
+    if (addMoreFilesBtn) {
+      addMoreFilesBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
+      });
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        addFiles(Array.from(e.target.files));
+        fileInput.value = '';
+      }
+    });
+
+    if (removeFileBtn) {
+      removeFileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedFiles = [];
+        fileInput.value = '';
+        updateCardsUI();
+      });
+    }
+
+    function detectAndRenderFormatOptions(files) {
+      let jpgCount = 0;
+      let pngCount = 0;
+      let otherCount = 0;
+
+      files.forEach(f => {
+        const ext = f.name.toLowerCase().split('.').pop();
+        if (ext === 'jpg' || ext === 'jpeg') jpgCount++;
+        else if (ext === 'png') pngCount++;
+        else otherCount++;
+      });
+
+      if (pngCount === 0 && otherCount === 0) {
+        // Hanya JPG
+        detectedFormatBadge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20';
+        detectedFormatBadge.innerHTML = '<i class="ti ti-file-type-jpg text-sm"></i> Terdeteksi: JPG';
+        detectedFormatTitle.textContent = `${files.length} file terdeteksi berformat JPG asli.`;
+
+        selectedTargetFormat = 'jpg';
+        currentFormatOptions = [
+          {
+            format: 'jpg',
+            title: 'Tetap JPG',
+            desc: 'Standar Adobe Stock Foto • 300 DPI • Chroma 4:4:4 sRGB',
+            badge: 'Standar Adobe',
+            badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+          },
+          {
+            format: 'png',
+            title: 'Ubah ke PNG',
+            desc: 'Convert ke PNG Lossless resolusi penuh tanpa kompresi JPEG',
+            badge: 'Convert Lossless',
+            badgeColor: 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+          }
+        ];
+      } else if (jpgCount === 0 && otherCount === 0) {
+        // Hanya PNG
+        detectedFormatBadge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20';
+        detectedFormatBadge.innerHTML = '<i class="ti ti-file-type-png text-sm"></i> Terdeteksi: PNG';
+        detectedFormatTitle.textContent = `${files.length} file PNG terdeteksi (Mendukung transparansi / grafis).`;
+
+        selectedTargetFormat = 'png';
+        currentFormatOptions = [
+          {
+            format: 'png',
+            title: 'Tetap PNG',
+            desc: 'Pertahankan Transparansi Alpha • Kualitas Lossless Penuh',
+            badge: 'Transparan & Lossless',
+            badgeColor: 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+          },
+          {
+            format: 'jpg',
+            title: 'Ubah ke JPG',
+            desc: 'Convert ke JPEG sRGB Putih (Wajib untuk submit Adobe Stock)',
+            badge: 'Standar Adobe Stock',
+            badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+          }
+        ];
+      } else {
+        // Campuran
+        detectedFormatBadge.className = 'text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-purple-500/10 text-purple-400 border border-purple-500/20';
+        detectedFormatBadge.innerHTML = '<i class="ti ti-files text-sm"></i> Format Campuran';
+        detectedFormatTitle.textContent = `${jpgCount} file JPG, ${pngCount} file PNG${otherCount > 0 ? ', ' + otherCount + ' format lain' : ''}.`;
+
+        selectedTargetFormat = 'auto';
+        currentFormatOptions = [
+          {
+            format: 'auto',
+            title: 'Sesuai Format Asli',
+            desc: 'JPG tetap JPG, PNG tetap PNG • Otomatis per file',
+            badge: 'Otomatis',
+            badgeColor: 'bg-brand-500/10 text-brand-400 border-brand-500/20'
+          },
+          {
+            format: 'jpg',
+            title: 'Semua ke JPG',
+            desc: 'Paksa semua hasil diexport ke format JPEG Adobe Stock',
+            badge: 'Semua JPG',
+            badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+          },
+          {
+            format: 'png',
+            title: 'Semua ke PNG',
+            desc: 'Paksa semua hasil diexport ke format PNG Lossless',
+            badge: 'Semua PNG',
+            badgeColor: 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+          }
+        ];
+      }
+
+      renderToggleButtons();
+      formatDetectionCard.classList.remove('hidden');
+    }
+
+    function renderToggleButtons() {
+      formatToggleContainer.className = currentFormatOptions.length === 3 
+        ? 'grid grid-cols-1 sm:grid-cols-3 gap-2.5'
+        : 'grid grid-cols-1 sm:grid-cols-2 gap-2.5';
+
+      formatToggleContainer.innerHTML = currentFormatOptions.map(opt => {
+        const isSelected = (selectedTargetFormat === opt.format);
+        return `
+          <button type="button" onclick="selectFormat('${opt.format}')" 
+            class="text-left p-3 rounded-xl border transition-all flex flex-col justify-between ${
+              isSelected 
+                ? 'bg-brand-500/15 border-brand-500 ring-1 ring-brand-500/60 shadow-lg shadow-brand-500/10' 
+                : 'bg-dark-800/80 border-white/5 hover:border-white/20 hover:bg-dark-800 text-gray-300'
+            }">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span class="font-bold text-xs ${isSelected ? 'text-white' : 'text-gray-200'} flex items-center gap-1.5">
+                <i class="ti ${isSelected ? 'ti-circle-check-filled text-brand-400' : 'ti-circle text-gray-500'} text-sm"></i>
+                ${opt.title}
+              </span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full border ${opt.badgeColor}">
+                ${opt.badge}
+              </span>
+            </div>
+            <p class="text-[11px] ${isSelected ? 'text-brand-200/80' : 'text-gray-400'} leading-relaxed pl-5">
+              ${opt.desc}
+            </p>
+          </button>
+        `;
+      }).join('');
+    }
+
+    window.selectFormat = function(fmt) {
+      selectedTargetFormat = fmt;
+      renderToggleButtons();
+    };
+
+    const generateVectorCheckbox = document.getElementById('generateVectorCheckbox');
+    const vectorPresetContainer = document.getElementById('vectorPresetContainer');
+    if (generateVectorCheckbox) {
+      generateVectorCheckbox.addEventListener('change', () => {
+        if (generateVectorCheckbox.checked) {
+          vectorPresetContainer.classList.remove('hidden');
+        } else {
+          vectorPresetContainer.classList.add('hidden');
+        }
+      });
+    }
+
+    processBtn.addEventListener('click', async () => {
+      if (!selectedFiles || selectedFiles.length === 0) return;
+
+      const totalBytes = selectedFiles.reduce((acc, f) => acc + f.size, 0);
+      if (totalBytes > MAX_TOTAL_BATCH_BYTES) {
+        alert('Total ukuran file melebihi 500 MB. Kurangi jumlah file sebelum memproses.');
+        return;
+      }
+      const oversized = selectedFiles.filter(f => f.size > MAX_SINGLE_FILE_BYTES);
+      if (oversized.length > 0) {
+        alert(`Terdapat ${oversized.length} file yang melebihi batas 50 MB per gambar. Mohon ganti file tersebut.`);
+        return;
+      }
+
+      const formData = new FormData();
+      selectedFiles.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      formData.append('scale', document.getElementById('scaleSelect').value);
+      formData.append('edge_smooth', document.getElementById('edgeSmoothSelect').value);
+      formData.append('denoise', document.getElementById('denoiseSelect').value);
+      formData.append('sharpen', document.getElementById('sharpenSelect').value);
+      formData.append('target_format', selectedTargetFormat);
+      formData.append('generate_metadata', document.getElementById('generateMetadataCheckbox').checked ? 'true' : 'false');
+      formData.append('generate_vector', generateVectorCheckbox && generateVectorCheckbox.checked ? 'true' : 'false');
+      formData.append('vector_preset', document.getElementById('vectorPresetSelect').value);
+      formData.append('engine', 'classic');
+
+      processBtn.disabled = true;
+      loadingState.classList.remove('hidden');
+      resultBox.classList.add('hidden');
+
+      try {
+        const resp = await fetch('/api/upscale', {
+          method: 'POST',
+          body: formData
+        });
+
+        loadingState.classList.add('hidden');
+        processBtn.disabled = false;
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          let errMsg = 'Terjadi kesalahan pada server (HTTP ' + resp.status + ')';
+          try {
+            const errObj = JSON.parse(errText);
+            if (errObj && errObj.error) errMsg = errObj.error;
+          } catch (_) {}
+          if (resp.status === 413) {
+            errMsg = 'Ukuran total upload melebihi batas server (Maks 500 MB).';
+          } else if (resp.status === 504) {
+            errMsg = 'Waktu pemrosesan melebihi batas timeout server.';
+          }
+          alert('Error: ' + errMsg);
+          return;
+        }
+
+        const data = await resp.json();
+
+        if (data.success) {
+          try {
+            localStorage.setItem('nyobaai_last_result', JSON.stringify(data));
+          } catch (_) {}
+          renderResultData(data);
+          resultBox.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          alert('Error: ' + (data.error || 'Gagal memproses batch gambar'));
+        }
+      } catch (err) {
+        loadingState.classList.add('hidden');
+        processBtn.disabled = false;
+        alert('Gagal menghubungi server: ' + err.message);
+      }
+    });
+
+    function renderResultData(data) {
+      if (!data || !data.success) return;
+      currentBatchId = data.batch_id;
+      countProcessed.textContent = data.total_processed;
+      downloadZipBtn.href = data.zip_download_url;
+      zipSizeBadge.textContent = data.zip_size;
+
+      const metaBox = document.getElementById('metadataDownloadBox');
+      if (data.has_metadata) {
+        metaBox.classList.remove('hidden');
+        document.getElementById('downloadAdobeCsvBtn').href = data.adobe_csv_url;
+        document.getElementById('downloadVecteezyCsvBtn').href = data.vecteezy_csv_url;
+      } else {
+        metaBox.classList.add('hidden');
+      }
+
+      filesTableBody.innerHTML = data.files.map((item) => {
+        const isPng = item.output_name.toLowerCase().endsWith('.png');
+        return `
+        <tr class="hover:bg-white/5 transition">
+          <td class="py-2.5 px-3 max-w-xs">
+            <div class="font-mono text-white truncate flex items-center" title="${item.output_name}">
+              <i class="ti ${isPng ? 'ti-file-type-png text-sky-400' : 'ti-file-type-jpg text-amber-400'} mr-1 shrink-0"></i>
+              <span class="truncate">${item.output_name}</span>
+            </div>
+            ${item.metadata ? `
+              <div class="text-[11px] text-gray-300 mt-1 truncate" title="${item.metadata.title_adobe || ''}">
+                <span class="text-brand-400 font-medium">Judul:</span> ${item.metadata.title_adobe || '-'}
+              </div>
+              <div class="text-[10px] text-gray-400 flex items-center gap-2 mt-0.5">
+                <span><i class="ti ti-category text-indigo-400"></i> Kat ${item.metadata.category_id || 8}</span>
+                <span><i class="ti ti-tags text-emerald-400"></i> ${item.metadata.keywords_count || 0} Keywords</span>
+              </div>
+            ` : ''}
+          </td>
+          <td class="py-2.5 px-3">
+            <div class="flex flex-col gap-1 items-start">
+              <span class="px-2 py-0.5 rounded text-[10px] font-medium border ${isPng ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}">
+                ${isPng ? 'PNG Lossless' : 'JPG 4:4:4'}
+              </span>
+              ${item.vector ? `
+                <span class="px-2 py-0.5 rounded text-[10px] font-medium border bg-indigo-500/10 text-indigo-400 border-indigo-500/20 flex items-center gap-1">
+                  <i class="ti ti-vector"></i> EPS (${item.vector.eps_size})
+                </span>
+              ` : ''}
+            </div>
+          </td>
+          <td class="py-2.5 px-3 font-mono text-emerald-400">${item.final_res}</td>
+          <td class="py-2.5 px-3 text-gray-400">${item.file_size}</td>
+          <td class="py-2.5 px-3 text-right">
+            <div class="flex items-center justify-end gap-1.5 flex-wrap">
+              <a href="${item.download_url}" class="text-brand-400 hover:text-brand-300 font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-500/10 border border-brand-500/20 hover:bg-brand-500/20 transition" title="Download Gambar">
+                <i class="ti ti-download"></i> ${isPng ? 'PNG' : 'JPG'}
+              </a>
+              ${item.vector ? `
+                <a href="${item.vector.eps_download_url}" class="text-indigo-400 hover:text-indigo-300 font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition" title="Download EPS Vector">
+                  <i class="ti ti-vector"></i> EPS
+                </a>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+      }).join('');
+
+      resultBox.classList.remove('hidden');
+    }
+
+    deleteBatchBtn.addEventListener('click', async () => {
+      if (!currentBatchId) return;
+      if (!confirm('Hapus semua file hasil batch ini dari server sekarang?')) return;
+      try {
+        const resp = await fetch(`/api/delete-batch/${currentBatchId}`, { method: 'POST' });
+        const res = await resp.json();
+        alert('Semua file batch berhasil dihapus dari server!');
+        resultBox.classList.add('hidden');
+        try {
+          localStorage.removeItem('nyobaai_last_result');
+        } catch (_) {}
+        currentBatchId = null;
+      } catch (e) {
+        alert('Gagal menghapus batch: ' + e.message);
+      }
+    });
+
+    // Cek parameter ?batch= di URL atau pulihkan otomatis dari localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlBatchId = urlParams.get('batch');
+    if (urlBatchId) {
+      fetch(`/api/batch-info/${urlBatchId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.success) {
+            renderResultData(data);
+            try {
+              localStorage.setItem('nyobaai_last_result', JSON.stringify(data));
+            } catch (_) {}
+          }
+        })
+        .catch(() => {});
+    } else {
+      try {
+        const saved = localStorage.getItem('nyobaai_last_result');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.batch_id) {
+            // Verifikasi ke server apakah batch masih ada atau sudah kedaluwarsa (auto-purge)
+            fetch(`/api/batch-info/${parsed.batch_id}`)
+              .then(r => r.json())
+              .then(data => {
+                if (data && data.success) {
+                  renderResultData(data);
+                } else {
+                  localStorage.removeItem('nyobaai_last_result');
+                }
+              })
+              .catch(() => {});
+          }
+        }
+      } catch (_) {}
+    }
+  </script>
+</body>
+</html>
